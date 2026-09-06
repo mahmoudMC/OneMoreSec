@@ -8,11 +8,20 @@ public class HealthHUD : MonoBehaviour
     [SerializeField] private Image healthFill;
     [SerializeField] private TMP_Text healthText;
 
+    [Header("Local Test")]
+    [SerializeField] private HealthSystem healthSystem;
+
     private IHealthService healthService;
 
     private void OnEnable()
     {
         HealthEvents.HealthChanged += OnHealthChanged;
+    }
+
+    private void Start()
+    {
+        if (healthSystem != null)
+            Bind(healthSystem);
     }
 
     private void OnDisable()

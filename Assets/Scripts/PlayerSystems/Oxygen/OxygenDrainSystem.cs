@@ -41,9 +41,18 @@ public class OxygenDrainSystem : MonoBehaviour
             );
         }
     }
+    private void Start()
+    {
+        Debug.Log("OxygenDrainSystem Started", this);
+    }
 
     private void Update()
     {
+       // Debug.Log(
+       //    $"Oxygen: {oxygenService?.CurrentOxygen} | " +
+       //    $"Health: {healthService?.CurrentHealth} | " +
+       //    $"Drain Enabled: {isDrainEnabled}"
+       //);
         if (oxygenService == null || healthService == null)
             return;
 

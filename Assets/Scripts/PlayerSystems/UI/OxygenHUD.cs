@@ -6,11 +6,22 @@ public class OxygenHUD : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private TMP_Text oxygenText;
 
+    [Header("Local Test")]
+    [SerializeField] private OxygenSystem oxygenSystem;
+
     private IOxygenService oxygenService;
 
     private void OnEnable()
     {
         OxygenEvents.OxygenChanged += OnOxygenChanged;
+    }
+
+    private void Start()
+    {
+        if (oxygenSystem != null)
+        {
+            Bind(oxygenSystem);
+        }
     }
 
     private void OnDisable()
@@ -21,7 +32,6 @@ public class OxygenHUD : MonoBehaviour
     public void Bind(IOxygenService source)
     {
         oxygenService = source;
-
         Refresh();
     }
 
