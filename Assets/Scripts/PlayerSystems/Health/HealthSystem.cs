@@ -2,7 +2,9 @@ using UnityEngine;
 
 public class HealthSystem : MonoBehaviour, IHealthService
 {
-    [SerializeField] private float maxHealth = 100f;
+    [SerializeField]
+    [Min(0f)]
+    private float maxHealth = 100f;
 
     private float currentHealth;
     private bool isDead;
@@ -14,6 +16,7 @@ public class HealthSystem : MonoBehaviour, IHealthService
     private void Awake()
     {
         currentHealth = maxHealth;
+        isDead = false;
     }
 
     public void TakeDamage(float amount)
@@ -28,8 +31,15 @@ public class HealthSystem : MonoBehaviour, IHealthService
 
         float actualDamage = previousHealth - currentHealth;
 
-        HealthEvents.RaiseDamageTaken(actualDamage);
-        HealthEvents.RaiseHealthChanged(currentHealth, maxHealth);
+        if (actualDamage <= 0f)
+            return;
+
+        HealthEvents.RaiseDamageTaken(this, actualDamage);
+        HealthEvents.RaiseHealthChanged(
+            this,
+            currentHealth,
+            maxHealth
+        );
 
         if (currentHealth <= 0f)
         {
@@ -52,8 +62,24 @@ public class HealthSystem : MonoBehaviour, IHealthService
         if (actualHeal <= 0f)
             return;
 
-        HealthEvents.RaiseHealed(actualHeal);
-        HealthEvents.RaiseHealthChanged(currentHealth, maxHealth);
+        HealthEvents.RaiseHealed(this, actualHeal);
+        HealthEvents.RaiseHealthChanged(
+            this,
+            currentHealth,
+            maxHealth
+        );
+    }
+
+    public void ResetHealth()
+    {
+        currentHealth = maxHealth;
+        isDead = false;
+
+        HealthEvents.RaiseHealthChanged(
+            this,
+            currentHealth,
+            maxHealth
+        );
     }
 
     private void Die()
@@ -63,6 +89,6 @@ public class HealthSystem : MonoBehaviour, IHealthService
 
         isDead = true;
 
-        HealthEvents.RaiseDied();
+        HealthEvents.RaiseDied(this);
     }
 }

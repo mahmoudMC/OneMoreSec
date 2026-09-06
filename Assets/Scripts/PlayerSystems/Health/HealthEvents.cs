@@ -2,28 +2,35 @@ using System;
 
 public static class HealthEvents
 {
-    public static event Action<float, float> HealthChanged;
-    public static event Action<float> DamageTaken;
-    public static event Action<float> Healed;
-    public static event Action Died;
+    public static event Action<IHealthService, float, float> HealthChanged;
+    public static event Action<IHealthService, float> DamageTaken;
+    public static event Action<IHealthService, float> Healed;
+    public static event Action<IHealthService> Died;
 
-    public static void RaiseHealthChanged(float currentHealth, float maxHealth)
+    public static void RaiseHealthChanged(
+        IHealthService source,
+        float currentHealth,
+        float maxHealth)
     {
-        HealthChanged?.Invoke(currentHealth, maxHealth);
+        HealthChanged?.Invoke(source, currentHealth, maxHealth);
     }
 
-    public static void RaiseDamageTaken(float amount)
+    public static void RaiseDamageTaken(
+        IHealthService source,
+        float amount)
     {
-        DamageTaken?.Invoke(amount);
+        DamageTaken?.Invoke(source, amount);
     }
 
-    public static void RaiseHealed(float amount)
+    public static void RaiseHealed(
+        IHealthService source,
+        float amount)
     {
-        Healed?.Invoke(amount);
+        Healed?.Invoke(source, amount);
     }
 
-    public static void RaiseDied()
+    public static void RaiseDied(IHealthService source)
     {
-        Died?.Invoke();
+        Died?.Invoke(source);
     }
 }

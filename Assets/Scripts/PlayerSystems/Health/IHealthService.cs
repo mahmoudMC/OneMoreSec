@@ -6,4 +6,5 @@ public interface IHealthService
 
     void TakeDamage(float amount);
     void Heal(float amount);
+    void ResetHealth();
 }
