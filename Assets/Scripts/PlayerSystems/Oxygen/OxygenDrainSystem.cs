@@ -25,10 +25,18 @@ public class OxygenDrainSystem : MonoBehaviour
         oxygenService = GetComponent<IOxygenService>();
         healthService = GetComponent<IHealthService>();
 
+        // Try to auto-find IOxygenService if not on same GameObject
+        if (oxygenService == null)
+        {
+            oxygenService = GetComponentInChildren<IOxygenService>(true);
+            if (oxygenService == null)
+                oxygenService = GetComponentInParent<IOxygenService>(true);
+        }
+
         if (oxygenService == null)
         {
             Debug.LogError(
-                "OxygenDrainSystem requires an IOxygenService on the same GameObject.",
+                "OxygenDrainSystem requires an IOxygenService on the same GameObject (or in children/parents).",
                 this
             );
         }
@@ -41,6 +49,11 @@ public class OxygenDrainSystem : MonoBehaviour
             );
         }
     }
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogging = true;
+    [SerializeField] private float debugLogInterval = 1f;
+    private float debugTimer = 0f;
     private void Start()
     {
         Debug.Log("OxygenDrainSystem Started", this);
@@ -48,11 +61,16 @@ public class OxygenDrainSystem : MonoBehaviour
 
     private void Update()
     {
-       // Debug.Log(
-       //    $"Oxygen: {oxygenService?.CurrentOxygen} | " +
-       //    $"Health: {healthService?.CurrentHealth} | " +
-       //    $"Drain Enabled: {isDrainEnabled}"
-       //);
+       // optional periodic debug logging
+        if (debugLogging)
+        {
+            debugTimer -= Time.deltaTime;
+            if (debugTimer <= 0f)
+            {
+                Debug.Log($"[OxygenDrainSystem] Oxygen: {oxygenService?.CurrentOxygen} | Health: {healthService?.CurrentHealth} | Drain Enabled: {isDrainEnabled}", this);
+                debugTimer = Mathf.Max(0.01f, debugLogInterval);
+            }
+        }
         if (oxygenService == null || healthService == null)
             return;
 
@@ -64,9 +82,14 @@ public class OxygenDrainSystem : MonoBehaviour
 
         if (!oxygenService.IsEmpty)
         {
-            oxygenService.ConsumeOxygen(
-                oxygenDrainPerSecond * Time.deltaTime
-            );
+            float amount = oxygenDrainPerSecond * Time.deltaTime;
+            oxygenService.ConsumeOxygen(amount);
+
+            if (debugLogging)
+            {
+                // immediate log when consuming (supplemental)
+                Debug.Log($"[OxygenDrainSystem] Consumed {amount:F4} oxygen -> {oxygenService.CurrentOxygen:F4}", this);
+            }
 
             return;
         }
