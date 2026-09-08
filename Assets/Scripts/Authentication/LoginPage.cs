@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System;
 using TMPro;
 using Unity.Services.Authentication;
@@ -8,10 +9,6 @@ using UnityEngine.UI;
 
 public class LoginPage : MonoBehaviour
 {
-    [Header("Panels")]
-    [SerializeField] private GameObject loginPanel;
-    [SerializeField] private GameObject registerPanel;
-    [SerializeField] private GameObject guestPanel;
 
     [Header("Login Fields")]
     [SerializeField] private TMP_InputField loginUsernameInput;
@@ -27,7 +24,9 @@ public class LoginPage : MonoBehaviour
     [SerializeField] private TMP_InputField guestPlayerNameInput;
 
     [Header("Feedback UI")]
+    [SerializeField] private CanvasGroup statusCanvas;
     [SerializeField] private TextMeshProUGUI statusText;
+    [SerializeField] private float fadeDuration = 0.5f;
 
     private async void Start() {
         // Initialize Unity Gaming Services
@@ -35,7 +34,15 @@ public class LoginPage : MonoBehaviour
             if (UnityServices.State == ServicesInitializationState.Uninitialized) {
                 await UnityServices.InitializeAsync();
             }
-            ShowLoginPanel();
+            // Check if user has a valid cached session token
+            if (AuthenticationService.Instance.SessionTokenExists) {
+
+                // Re-authenticates using the existing session token
+                await AuthenticationService.Instance.SignInAnonymouslyAsync();
+
+                OnAuthenticationSuccess();
+                return;
+            }
         } catch (Exception e) {
             SetStatus($"Initialization Failed: {e.Message}");
         }
@@ -55,7 +62,6 @@ public class LoginPage : MonoBehaviour
 
         try {
             await AuthenticationService.Instance.SignInWithUsernamePasswordAsync(username, password);
-            SetStatus($"Signed in as: {AuthenticationService.Instance.PlayerName ?? username}");
             OnAuthenticationSuccess();
         } catch (AuthenticationException ex) {
             SetStatus($"Sign in failed: {ex.Message}");
@@ -88,8 +94,6 @@ public class LoginPage : MonoBehaviour
             return;
         }
 
-        SetStatus("Creating account...");
-
         try {
             // 1. Create username/password account
             await AuthenticationService.Instance.SignUpWithUsernamePasswordAsync(username, password);
@@ -97,7 +101,6 @@ public class LoginPage : MonoBehaviour
             // 2. Set the player's in-game display name
             await AuthenticationService.Instance.UpdatePlayerNameAsync(playerName);
 
-            SetStatus($"Account created successfully! Welcome {playerName}.");
             OnAuthenticationSuccess();
         } catch (AuthenticationException ex) {
             SetStatus($"Registration failed: {ex.Message}");
@@ -129,7 +132,7 @@ public class LoginPage : MonoBehaviour
         }
     }
 
-    private void TogglePasswordVisibility(TMP_InputField inputField) {
+    public void TogglePasswordVisibility(TMP_InputField inputField) {
         if (inputField == null) return;
 
         if (inputField.contentType == TMP_InputField.ContentType.Password) {
@@ -141,32 +144,25 @@ public class LoginPage : MonoBehaviour
         inputField.ForceLabelUpdate();
     }
 
-    public void ShowLoginPanel() {
-        loginPanel.SetActive(true);
-        registerPanel.SetActive(false);
-        guestPanel.SetActive(false);
+    public void ShowMenu(CanvasGroup menu) {
+        menu.gameObject.SetActive(true);
+        menu.DOFade(1, fadeDuration).From(0);
     }
-
-    public void ShowRegisterPanel() {
-        loginPanel.SetActive(false);
-        registerPanel.SetActive(true);
-        guestPanel.SetActive(false);
-    }
-
-    public void ShowGuestPanel() {
-        loginPanel.SetActive(false);
-        registerPanel.SetActive(false);
-        guestPanel.SetActive(true);
+    public void HideMenu(CanvasGroup menu) {
+        menu.DOFade(0, fadeDuration).OnComplete(() => {
+            menu.gameObject.SetActive(false);
+        });
     }
 
     private void OnAuthenticationSuccess() {
         // Proceed to Lobby scene or main menu UI
-        Debug.Log($"Player Authenticated. ID: {AuthenticationService.Instance.PlayerId}");
+        print($"Player Authenticated. ID: {AuthenticationService.Instance.PlayerId}");
         SceneManager.LoadScene(1);
     }
 
     private void SetStatus(string message) {
-        if (statusText == null) return;
+        if (statusText == null || statusCanvas == null) return;
+        ShowMenu(statusCanvas);
         statusText.SetText(message);
     }
 }

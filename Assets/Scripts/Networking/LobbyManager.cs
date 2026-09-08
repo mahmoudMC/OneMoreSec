@@ -90,6 +90,10 @@ public class LobbyManager : MonoBehaviour {
                         DataObject.VisibilityOptions.Public,
                         gameMode.ToString(),
                         DataObject.IndexOptions.S1)
+                    },
+                    {ConstantKeys.RelayCode.ToString(), new DataObject(
+                        DataObject.VisibilityOptions.Member,
+                        "0")
                     }
                 }
             };
@@ -207,6 +211,7 @@ public class LobbyManager : MonoBehaviour {
 public enum ConstantKeys {
     PlayerName,
     GameMode,
+    RelayCode,
     isReady,
     Volume
 }
