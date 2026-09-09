@@ -17,15 +17,53 @@ public class LobbyManager : MonoBehaviour {
     private const byte MAX_Players = 6;
 
     private string playerName;
+    private bool lockReadyStatus = false;
 
     private Lobby currentLobby;
     private ILobbyEvents lobbyEvents;
 
     private void Awake() {
         if (Instance == null) Instance = this;
-        else Destroy(gameObject);
+        else {
+            Destroy(gameObject);
+            return;
+        }
 
         playerName = "Player_" + UnityEngine.Random.Range(1000, 9999);
+
+        OnLobbyPulled += LobbyManager_OnLobbyPulled;
+    }
+
+    private void LobbyManager_OnLobbyPulled(Lobby lobby) {
+        if (lobby == null) return;
+        if (isEveryoneReady(lobby)) {
+            lockReadyStatus = true;
+            if (isHost()) {
+                PersistantDataManager.Instance.SetHostData(lobby.Id, (byte)lobby.Players.Count);
+            }
+            else {
+                string relayCode = lobby.Data[ConstantKeys.RelayCode.ToString()].Value;
+                if (relayCode != "0") PersistantDataManager.Instance.SetClientData(relayCode);
+            }
+            // loading screen
+        }
+    }
+    private bool isEveryoneReady(Lobby lobby) {
+        if (lobby == null || lobby.Players == null || lobby.Players.Count < 2)
+            return false;
+
+        string readyKey = ConstantKeys.isReady.ToString();
+
+        foreach (var player in lobby.Players) {
+            if (player.Data == null)
+                return false;
+
+            if (player.Data.TryGetValue(readyKey, out var readyData)) {
+                if (readyData.Value != true.ToString()) return false;
+            } else return false;
+        }
+
+        return true;
     }
 
     public async Task StartSearching(GameMode gameMode) {
@@ -36,7 +74,7 @@ public class LobbyManager : MonoBehaviour {
                 Filter = new List<QueryFilter> {
                     new QueryFilter(QueryFilter.FieldOptions.AvailableSlots, "0", QueryFilter.OpOptions.GT),
                     new QueryFilter(QueryFilter.FieldOptions.S1, gameMode.ToString(), QueryFilter.OpOptions.EQ)
-                }
+                },
             };
             // quick join the lobby
             currentLobby = await LobbyService.Instance.QuickJoinLobbyAsync(quickJoinOptions);
@@ -117,13 +155,14 @@ public class LobbyManager : MonoBehaviour {
                 },
                 {ConstantKeys.isReady.ToString(), new PlayerDataObject(
                     PlayerDataObject.VisibilityOptions.Member,
-                    "false")
+                    false.ToString())
                 }
             }
         };
     }
     public async void UpdatePlayerReadyStatus(bool isReady) {
         if (currentLobby == null) return;
+        if (lockReadyStatus) return;
         try {
             await LobbyService.Instance.UpdatePlayerAsync(currentLobby.Id, AuthenticationService.Instance.PlayerId, new UpdatePlayerOptions {
                 Data = new Dictionary<string, PlayerDataObject> {
@@ -151,7 +190,7 @@ public class LobbyManager : MonoBehaviour {
             try {
                 Lobby lobby = await LobbyService.Instance.GetLobbyAsync(lobbyId);
                 currentLobby = lobby;
-                OnLobbyPulled?.Invoke(lobby);
+                if (lobby != null) OnLobbyPulled?.Invoke(lobby);
             } catch (LobbyServiceException e) {
                 // If the lobby was deleted by host or player was kicked
                 if (e.Reason == LobbyExceptionReason.LobbyNotFound) {
