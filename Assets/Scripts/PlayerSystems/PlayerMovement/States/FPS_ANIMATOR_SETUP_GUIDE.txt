@@ -1,0 +1,290 @@
+/*
+ * FPS ANIMATOR SETUP GUIDE
+ * 
+ * This guide explains how to set up a First-Person Shooter animator for your player.
+ * The key difference: you animate only ARMS/HANDS, not the full body.
+ * The gun is held in front of the camera.
+ */
+
+/*
+ * ============================================================
+ * STEP 1: GET FPS ANIMATIONS
+ * ============================================================
+ * 
+ * Download animations from:
+ * 
+ * 1. MIXAMO (RECOMMENDED - Free):
+ *    - Go to mixamo.adobe.com
+ *    - Search for animations like:
+ *      * "Pistol Idle"
+ *      * "Pistol Walk Forward"
+ *      * "Pistol Walk Backward"
+ *      * "Pistol Run"
+ *      * "Pistol Crouch Idle"
+ *      * "Pistol Crouch Walk"
+ *      * "Pistol Aim"
+ *    - Download as FBX with Skin
+ *    - Import into your project
+ * 
+ * 2. UNITY ASSET STORE:
+ *    - Search: "FPS animator", "first person arms", "pistol animations"
+ *    - Many free and paid packs available
+ * 
+ * 3. SKETCHFAB / TURBOSQUID:
+ *    - Search for "FPS arms rig" or "first person animator"
+ */
+
+/*
+ * ============================================================
+ * STEP 2: CREATE ANIMATOR PARAMETERS
+ * ============================================================
+ * 
+ * In your Animator Controller, create these parameters:
+ * 
+ * BOOLEAN (On/Off):
+ * - isMoving         → Arms animating (not idle)
+ * - isRunning        → High-speed movement
+ * - isCrouching      → Crouched posture
+ * - isAiming         → Aiming weapon
+ * - isCharging       → Charging ability
+ * - isFrozen         → Game start state
+ * 
+ * FLOAT (Continuous Values):
+ * - moveX            → -1 to 1 (left/right strafe)
+ * - moveY            → -1 to 1 (forward/backward) 
+ *                      (-1 = walk back, 0 = idle, 1 = walk forward)
+ * - moveSpeed        → 0 to 1 (normalized movement magnitude)
+ * - verticalVelocity → Jump/fall velocity
+ */
+
+/*
+ * ============================================================
+ * STEP 3: ANIMATOR STATE MACHINE
+ * ============================================================
+ * 
+ * Create this state structure in your Base Layer:
+ * 
+ * BASE LAYER (Arms/Hands):
+ * ├─ Idle
+ * │  └─ Single animation frame (arms at rest)
+ * │
+ * ├─ Walk
+ * │  └─ Blending tree based on moveY:
+ * │     ├─ Walk Backward (-1)
+ * │     ├─ Idle (0)
+ * │     └─ Walk Forward (1)
+ * │  └─ Also consider moveX for strafing
+ * │
+ * ├─ Run
+ * │  └─ Run Forward animation
+ * │
+ * ├─ Crouch
+ * │  └─ Blending tree:
+ * │     ├─ Crouch Idle
+ * │     └─ Crouch Walk (based on moveSpeed)
+ * │
+ * ├─ Charge
+ * │  └─ Charging animation
+ * │
+ * └─ Frozen
+ *    └─ Idle pose (game start)
+ */
+
+/*
+ * ============================================================
+ * STEP 4: CREATE TRANSITIONS
+ * ============================================================
+ * 
+ * Idle → Walk
+ *   Condition: isMoving = true AND isRunning = false
+ *   Transition Duration: 0.1s
+ * 
+ * Walk → Idle
+ *   Condition: isMoving = false
+ *   Transition Duration: 0.1s
+ * 
+ * Walk → Run
+ *   Condition: isRunning = true
+ *   Transition Duration: 0.2s
+ * 
+ * Run → Walk
+ *   Condition: isRunning = false
+ *   Transition Duration: 0.2s
+ * 
+ * Any → Crouch
+ *   Condition: isCrouching = true
+ *   Transition Duration: 0.15s
+ * 
+ * Crouch → Walk/Idle
+ *   Condition: isCrouching = false
+ *   Transition Duration: 0.15s
+ * 
+ * Any → Charge
+ *   Condition: isCharging = true
+ *   Transition Duration: 0.1s
+ * 
+ * Charge → Idle/Walk/Run
+ *   Condition: isCharging = false
+ *   Transition Duration: 0.1s
+ * 
+ * Any → Frozen
+ *   Condition: isFrozen = true
+ *   Transition Duration: 0s (immediate)
+ */
+
+/*
+ * ============================================================
+ * STEP 5: BLENDING TREES (Advanced)
+ * ============================================================
+ * 
+ * For smooth directional movement, use Blend Trees:
+ * 
+ * WALK BLEND TREE:
+ * Type: 2D Freeform Directional
+ * Parameters: moveX (X-axis), moveY (Y-axis)
+ * 
+ * Positions:
+ * ├─ Walk Back      → (-0, -1)  moveX=0,  moveY=-1
+ * ├─ Walk Back Left → (-1, -1)  moveX=-1, moveY=-1
+ * ├─ Walk Left      → (-1,  0)  moveX=-1, moveY=0
+ * ├─ Walk Fwd Left  → (-1,  1)  moveX=-1, moveY=1
+ * ├─ Walk Forward   → ( 0,  1)  moveX=0,  moveY=1
+ * ├─ Walk Fwd Right → ( 1,  1)  moveX=1,  moveY=1
+ * ├─ Walk Right     → ( 1,  0)  moveX=1,  moveY=0
+ * ├─ Walk Back Right→ ( 1, -1)  moveX=1,  moveY=-1
+ * └─ Idle           → ( 0,  0)  moveX=0,  moveY=0
+ * 
+ * CROUCH WALK BLEND TREE:
+ * Similar structure but with crouch walk animations
+ */
+
+/*
+ * ============================================================
+ * STEP 6: GUN POSITIONING
+ * ============================================================
+ * 
+ * TWO APPROACHES:
+ * 
+ * APPROACH A: Gun in Screen Space (RECOMMENDED)
+ * Hierarchy:
+ * ├─ Player
+ * │  ├─ CharacterController
+ * │  ├─ FirstPersonCamera (child of player, local pos = eye level)
+ * │  └─ GunHolder (child of camera, local pos = (0.4, -0.3, 0.5))
+ * │     └─ Gun Model (animated arms + gun)
+ * │        └─ GunMesh
+ * │        └─ Animator (arm animations)
+ * 
+ * Advantage: Gun doesn't move with player body, only arms animate
+ * 
+ * APPROACH B: Gun on Player Body
+ * Hierarchy:
+ * ├─ Player
+ * │  ├─ CharacterController
+ * │  └─ PlayerArmor (Animator)
+ * │     ├─ Armature (bones)
+ * │     │  └─ RightHand (bone)
+ * │     │     └─ Gun Model (child of bone)
+ * │     └─ Skinned Mesh Renderer
+ * 
+ * Advantage: Gun follows hand bone precisely
+ * 
+ * We recommend APPROACH A for FPS games.
+ */
+
+/*
+ * ============================================================
+ * STEP 7: ANIMATOR CONTROLLER SETTINGS
+ * ============================================================
+ * 
+ * Timeline Synchronization:
+ * ✓ Uncheck "Sync" on all transitions (not synced)
+ * 
+ * Root Motion:
+ * ✗ DISABLE root motion - we use CharacterController instead
+ * 
+ * Avatar:
+ * ✓ Assign your humanoid avatar
+ * ✓ Configure bones if using skeletal rig
+ * 
+ * Animation Transitions:
+ * ✓ Set Has Exit Time: OFF for most transitions
+ * ✓ Set Transition Duration: 0.1-0.2s for smooth blending
+ */
+
+/*
+ * ============================================================
+ * ANIMATOR PARAMETERS REFERENCE
+ * ============================================================
+ * 
+ * These are set automatically by PlayerMovement.cs:
+ * 
+ * EVERY FRAME:
+ * - animator.SetFloat("moveX", moveInput.x);
+ *   Range: -1 to 1 (left to right)
+ * 
+ * - animator.SetFloat("moveY", moveInput.y);
+ *   Range: -1 to 1 (back to forward)
+ * 
+ * - animator.SetFloat("moveSpeed", moveInput.magnitude);
+ *   Range: 0 to 1 (idle to full speed)
+ * 
+ * - animator.SetBool("isMoving", moveInput.sqrMagnitude > 0.01f);
+ *   true when player is moving at all
+ * 
+ * - animator.SetBool("isRunning", runInput && moveInput.sqrMagnitude > 0.01f);
+ *   true when holding Shift + moving
+ * 
+ * - animator.SetBool("isCrouching", crouchInput);
+ *   true when holding C
+ * 
+ * - animator.SetFloat("verticalVelocity", verticalVelocity);
+ *   Jump/fall velocity (for blend shapes)
+ * 
+ * FROM STATES:
+ * - animator.SetBool("isAiming", true/false); [AimState]
+ * - animator.SetBool("isCharging", true/false); [ChargeState]
+ * - animator.SetBool("isFrozen", true/false); [FrozenState]
+ */
+
+/*
+ * ============================================================
+ * COMMON ANIMATOR MISTAKES TO AVOID
+ * ============================================================
+ * 
+ * ✗ WRONG: Full body walking animation
+ *   ✓ CORRECT: Arms-only animation, no body rotation
+ * 
+ * ✗ WRONG: Gun attached to hip/hand bone
+ *   ✓ CORRECT: Gun in screen space, only arms animate
+ * 
+ * ✗ WRONG: Using moveSpeed for walk/run selection
+ *   ✓ CORRECT: Use isRunning boolean for discrete walk→run switch
+ * 
+ * ✗ WRONG: Long transition times between states (0.5s+)
+ *   ✓ CORRECT: Quick transitions (0.1-0.2s) for responsive feel
+ * 
+ * ✗ WRONG: Enabling root motion
+ *   ✓ CORRECT: Keep root motion OFF, use CharacterController
+ * 
+ * ✗ WRONG: Not using blend trees for directional movement
+ *   ✓ CORRECT: Use 2D blend trees for smooth 8-directional walking
+ */
+
+/*
+ * ============================================================
+ * TESTING CHECKLIST
+ * ============================================================
+ * 
+ * □ Walk forward → Walk animation plays, arms move
+ * □ Walk backward → Back walk animation plays
+ * □ Walk left/right → Strafe animation plays
+ * □ Walk + Shift → Run animation plays, faster
+ * □ Hold C → Crouch animation plays, lower arms
+ * □ Crouch + WASD → Crouch walk plays
+ * □ Right Click → Aim animation plays, gun raised
+ * □ Hold E → Charge animation plays
+ * □ ESC → Animations freeze (Paused state)
+ * □ Release ESC → Animations resume
+ * □ 3 seconds at start → Frozen state ends, can move
+ */
