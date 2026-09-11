@@ -30,6 +30,7 @@ public class LoginPage : MonoBehaviour
 
     private async void Start() {
         // Initialize Unity Gaming Services
+        LoadingManager.Instance.StartLoading();
         try {
             if (UnityServices.State == ServicesInitializationState.Uninitialized) {
                 await UnityServices.InitializeAsync();
@@ -41,11 +42,11 @@ public class LoginPage : MonoBehaviour
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
 
                 OnAuthenticationSuccess();
-                return;
             }
         } catch (Exception e) {
             SetStatus($"Initialization Failed: {e.Message}");
         }
+        LoadingManager.Instance.FinishLoading();
     }
 
 
@@ -60,6 +61,7 @@ public class LoginPage : MonoBehaviour
 
         SetStatus("Signing in...");
 
+        LoadingManager.Instance.StartLoading();
         try {
             await AuthenticationService.Instance.SignInWithUsernamePasswordAsync(username, password);
             OnAuthenticationSuccess();
@@ -68,6 +70,7 @@ public class LoginPage : MonoBehaviour
         } catch (RequestFailedException ex) {
             SetStatus($"Request failed: {ex.Message}");
         }
+        LoadingManager.Instance.FinishLoading();
     }
 
 
@@ -94,6 +97,7 @@ public class LoginPage : MonoBehaviour
             return;
         }
 
+        LoadingManager.Instance.StartLoading();
         try {
             // 1. Create username/password account
             await AuthenticationService.Instance.SignUpWithUsernamePasswordAsync(username, password);
@@ -107,6 +111,7 @@ public class LoginPage : MonoBehaviour
         } catch (RequestFailedException ex) {
             SetStatus($"Request failed: {ex.Message}");
         }
+        LoadingManager.Instance.FinishLoading();
     }
 
     public async void LoginAsGuest() {
@@ -117,6 +122,7 @@ public class LoginPage : MonoBehaviour
             return;
         }
 
+        LoadingManager.Instance.StartLoading();
         try {
             // 1. Authenticate anonymously
             await AuthenticationService.Instance.SignInAnonymouslyAsync();
@@ -130,6 +136,7 @@ public class LoginPage : MonoBehaviour
         } catch (RequestFailedException ex) {
             SetStatus($"Request failed: {ex.Message}");
         }
+        LoadingManager.Instance.FinishLoading();
     }
 
     public void TogglePasswordVisibility(TMP_InputField inputField) {
@@ -157,7 +164,7 @@ public class LoginPage : MonoBehaviour
     private void OnAuthenticationSuccess() {
         // Proceed to Lobby scene or main menu UI
         print($"Player Authenticated. ID: {AuthenticationService.Instance.PlayerId}");
-        SceneManager.LoadScene(1);
+        LoadingManager.Instance.LoadScene(1);
     }
 
     private void SetStatus(string message) {

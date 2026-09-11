@@ -1,4 +1,6 @@
 using DG.Tweening;
+using TMPro;
+using Unity.Services.Authentication;
 using UnityEngine;
 
 public class MainMenuManager : MonoBehaviour
@@ -9,6 +11,7 @@ public class MainMenuManager : MonoBehaviour
     [SerializeField] private GameModeToggleGroup gameModeToggleGroup;
     [SerializeField] private CanvasGroup lobbyCanvas;
     [SerializeField] private CanvasGroup homePage;
+    [SerializeField] private TextMeshProUGUI welcomeText;
 
     [Header("Menu Options")]
     [SerializeField] private float fadeDuration = 0.5f;
@@ -17,6 +20,11 @@ public class MainMenuManager : MonoBehaviour
         if (Instance == null) Instance = this;
         else Destroy(gameObject);
     }
+    private void Start() {
+        string playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
+        welcomeText.SetText($"Welcome,\n{playerName}");
+    }
+
     public void ShowMenu(CanvasGroup menu) {
         menu.gameObject.SetActive(true);
         menu.DOFade(1, fadeDuration).From(0);
@@ -33,15 +41,19 @@ public class MainMenuManager : MonoBehaviour
         return gameModeToggleGroup.GetSelectedGameMode();
     }
     public async void SearchForGame() {
+        LoadingManager.Instance.StartLoading();
         await LobbyManager.Instance.StartSearching(getGameMode());
+        LoadingManager.Instance.FinishLoading();
         if (LobbyManager.Instance.GetLobby() != null) {
             ShowMenu(lobbyCanvas);
         } else {
             ShowMenu(homePage);
         }
     }
-    public void SetReady(bool isReady) {
-        LobbyManager.Instance.UpdatePlayerReadyStatus(isReady);
+    public async void SetReady(bool isReady) {
+        LoadingManager.Instance.StartLoading();
+        await LobbyManager.Instance.UpdatePlayerReadyStatus(isReady);
+        LoadingManager.Instance.FinishLoading();
     }
     public void LeaveLobby() {
         LobbyManager.Instance.LeaveLobby();
