@@ -21,7 +21,10 @@ public class MainMenuManager : MonoBehaviour
         else Destroy(gameObject);
     }
     private void Start() {
-        string playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
+        string playerName = "Guest";
+        if (AuthenticationService.Instance.IsSignedIn) {
+            playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
+        }
         welcomeText.SetText($"Welcome,\n{playerName}");
     }
 

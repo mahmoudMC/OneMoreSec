@@ -17,7 +17,7 @@ public class PlayerAttributesService : MonoBehaviour, IPlayerAttributes
     [SerializeField] private float baseGravity = -20f;
 
     [Header("Crouch")]
-    [SerializeField] private float baseCrouchHeight = 1f;
+    [SerializeField] private float baseCrouchHeight = 1.2f;
     [SerializeField] private float baseCrouchTransitionTime = 0.12f;
 
     [Header("Combat")]

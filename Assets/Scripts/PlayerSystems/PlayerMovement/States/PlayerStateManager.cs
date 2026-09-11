@@ -8,7 +8,6 @@ using UnityEngine.InputSystem;
 /// </summary>
 [RequireComponent(typeof(PlayerMovement))]
 [RequireComponent(typeof(FirstPersonCamera))]
-[RequireComponent(typeof(Animator))]
 public class PlayerStateManager : MonoBehaviour
 {
     [Header("References")]
