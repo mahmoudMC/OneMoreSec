@@ -29,7 +29,7 @@ public class LobbyManager : MonoBehaviour {
             return;
         }
 
-        playerName = "Player_" + UnityEngine.Random.Range(1000, 9999);
+        playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
 
         OnLobbyPulled += LobbyManager_OnLobbyPulled;
     }
@@ -160,7 +160,7 @@ public class LobbyManager : MonoBehaviour {
             }
         };
     }
-    public async void UpdatePlayerReadyStatus(bool isReady) {
+    public async Task UpdatePlayerReadyStatus(bool isReady) {
         if (currentLobby == null) return;
         if (lockReadyStatus) return;
         try {
