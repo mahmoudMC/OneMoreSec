@@ -1,0 +1,46 @@
+BASIC PLAYER ANIMATIONS
+
+Open Assets/Scenes/Maged.unity and press Play.
+The player starts frozen for 3 seconds, then you can move.
+
+Controls
+- WASD: move; Shift: run; hold C: crouch; Space: jump.
+- Hold right mouse: aim (walking is allowed, running is disabled).
+- Hold E while standing still: recharge. Release E or move to cancel.
+- Escape: pause/resume.
+
+Where things are
+- Player still contains the existing movement, camera and state scripts.
+- Player > Character Visual contains the body and its active Animator.
+- Both PlayerMovement and PlayerStateManager reference that Animator.
+- The original empty Animator on Player is disabled.
+- AC_FirstPersonPlayer contains one layer and six simple states.
+- Locomotion, Run and Crouch contain directional blend trees.
+- Root motion is off: CharacterController still moves the player.
+
+Seeing the character
+The camera script enables the character meshes at startup instead of hiding them.
+The camera is still first-person: look down to see the body, or watch it in
+Scene view during Play to see the whole character. The camera is at head
+height, so the model may clip into view; no separate first-person mesh is used.
+Beta_Joints and Beta_Surface are mesh parts included in the Mixamo character.
+
+Temporary animation substitutes
+- Forward walk: Rifle Run at 0.55 playback speed.
+- Backward/sideways run: the available walking clips.
+- Crouch idle: Rifle Kneel Idle (a kneeling pose, not a proper crouch idle).
+- Crouch sideways: crouch forward clip (feet will not match sideways motion).
+- Jump/fall: Rifle Idle until a jump/fall clip is supplied.
+- Recharge: Rifle Idle until a recharge clip is supplied.
+- Aim uses the existing rifle poses; there is no separate aim animation,
+  weapon model or upper-body layer. PlayerCombat zooms the camera while aiming.
+- The character uses a simple grey-blue URP material.
+
+Replacing a substitute
+Import a suitable Humanoid animation. Open AC_FirstPersonPlayer in Animator.
+Double-click the appropriate blend tree, then replace its Motion field.
+For forward walking, also change the new clip's playback speed from 0.55 to 1.
+For jump/recharge, select the placeholder state and replace its Motion field.
+
+This is the basic LOCAL animation setup. Network synchronization, remote
+player ownership and weapon attachment are not implemented here.

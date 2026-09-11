@@ -9,6 +9,7 @@ public class RechargeSystem : MonoBehaviour, IRechargeService
     private float rechargeRatePerSecond = 2f;
 
     private IOxygenService oxygenService;
+    private OxygenDrainSystem drainSystem;
 
     // TODO: Uncomment when the related interfaces are available.
     // private IMovementControl movementControl;
@@ -22,6 +23,7 @@ public class RechargeSystem : MonoBehaviour, IRechargeService
     private void Awake()
     {
         oxygenService = GetComponent<IOxygenService>();
+        drainSystem = GetComponent<OxygenDrainSystem>();
 
         if (oxygenService == null)
         {
@@ -55,6 +57,12 @@ public class RechargeSystem : MonoBehaviour, IRechargeService
 
         isRecharging = true;
 
+        // When recharging, pause the oxygen drain so oxygen increases as intended.
+        if (drainSystem != null)
+        {
+            drainSystem.SetDrainEnabled(false);
+        }
+
         // TODO: Recharge must disable player movement.
         // Waiting for IMovementControl implementation.
         // movementControl.SetMovementEnabled(false);
@@ -76,6 +84,12 @@ public class RechargeSystem : MonoBehaviour, IRechargeService
             return;
 
         isRecharging = false;
+
+        // Restore oxygen drain when recharge is cancelled.
+        if (drainSystem != null)
+        {
+            drainSystem.SetDrainEnabled(true);
+        }
 
         // TODO: Restore movement when recharge is cancelled.
         // movementControl.SetMovementEnabled(true);

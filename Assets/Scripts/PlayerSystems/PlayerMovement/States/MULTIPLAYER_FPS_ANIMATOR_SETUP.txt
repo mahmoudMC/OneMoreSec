@@ -1,0 +1,421 @@
+/*
+ * MULTIPLAYER FPS ANIMATOR SETUP GUIDE
+ * 
+ * For games where other players see your FULL BODY
+ * (Not arms-only first-person)
+ * 
+ * Examples: Escape from Tarkov, Call of Duty MP, Valorant, CS:GO
+ */
+
+/*
+ * ============================================================
+ * STEP 1: GET FULL-BODY FPS ANIMATIONS
+ * ============================================================
+ * 
+ * Download from:
+ * 
+ * MIXAMO (FREE - RECOMMENDED):
+ * Website: mixamo.adobe.com
+ * 
+ * Search and download these animations:
+ * ├── Idle Animations:
+ * │   ├─ "Gunman Idle" or "Standing Rifle Idle"
+ * │   └─ "Aiming Idle"
+ * │
+ * ├── Movement:
+ * │   ├─ "Gunman Run" or "Running"
+ * │   ├─ "Walking" or "Gunman Walk Forward"
+ * │   ├─ "Walking Backward"
+ * │   └─ "Strafing Left/Right"
+ * │
+ * ├── Crouch:
+ * │   ├─ "Crouch Idle"
+ * │   ├─ "Crouch Walk Forward"
+ * │   ├─ "Crouch Walk Backward"
+ * │   └─ "Crouch Strafe Left/Right"
+ * │
+ * ├── Combat:
+ * │   ├─ "Aiming Idle"
+ * │   ├─ "Aiming Walk"
+ * │   ├─ "Aiming Run" (optional - slower run while aiming)
+ * │   └─ "Firing"
+ * │
+ * └── Special:
+ *     ├─ "Jumping"
+ *     ├─ "Landing"
+ *     └─ "Falling"
+ * 
+ * Download settings:
+ * ✓ Format: FBX
+ * ✓ Avatar Type: Humanoid (IMPORTANT!)
+ * ✓ Skin: Include Skin
+ */
+
+/*
+ * ============================================================
+ * STEP 2: CHARACTER HIERARCHY
+ * ============================================================
+ * 
+ * After importing animations, your Player should look like:
+ * 
+ * Player (GameObject with CharacterController)
+ * ├── Armature (or Root Bone - from FBX)
+ * │   ├── Hips (or Pelvis)
+ * │   │   ├── Spine
+ * │   │   │   ├── Chest
+ * │   │   │   │   ├── Neck
+ * │   │   │   │   │   └── Head
+ * │   │   │   │   ├── Left Shoulder
+ * │   │   │   │   │   ├── Left Upper Arm
+ * │   │   │   │   │   │   ├── Left Forearm
+ * │   │   │   │   │   │   │   └── Left Hand ⭐ (Gun goes here!)
+ * │   │   │   │   │   │   └── Left Hand
+ * │   │   │   │   │   └── Right Shoulder
+ * │   │   │   │   │       └── Right Hand ⭐ (Gun goes here!)
+ * │   │   │   │   └── Left Hip / Right Hip
+ * │   │   │   │       └── Legs...
+ * │   │   │   │
+ * │   │   │   └─ (Repeat for right side)
+ * │
+ * ├── SkinnedMeshRenderer (your character's body mesh)
+ * ├── Animator (with full-body animations)
+ * ├── FirstPersonCamera (positioned at head)
+ * └── Gun Model (child of Right Hand bone) ⭐
+ *     └── Mesh
+ */
+
+/*
+ * ============================================================
+ * STEP 3: SETUP ANIMATOR PARAMETERS
+ * ============================================================
+ * 
+ * In your Animator Controller, create:
+ * 
+ * BOOLEAN PARAMETERS (On/Off):
+ * □ isMoving         → Any movement happening
+ * □ isRunning        → Hold Shift + moving
+ * □ isCrouching      → Hold C
+ * □ isAiming         → Right Click
+ * □ isCharging       → Hold E
+ * □ isFrozen         → Game start (locked)
+ * □ isJumping        → In air
+ * 
+ * FLOAT PARAMETERS (0-1 or -1 to 1):
+ * □ moveX            → -1=left, 0=center, 1=right (strafe)
+ * □ moveY            → -1=backward, 0=idle, 1=forward
+ * □ moveSpeed        → 0-1 (blending between walk speeds)
+ * □ verticalVelocity → Velocity for jump/fall blending
+ */
+
+/*
+ * ============================================================
+ * STEP 4: CREATE ANIMATOR STATE MACHINE
+ * ============================================================
+ * 
+ * BASE LAYER (Full Body Movement):
+ * 
+ * Idle
+ *  ↓ (isMoving = true)
+ * Walk/Strafe
+ *  ↓ (isRunning = true)
+ * Run
+ *  ↓ (isRunning = false)
+ * Walk
+ *  ↓ (isMoving = false)
+ * Idle
+ * 
+ * From ANY state:
+ * ↓ (isCrouching = true)
+ * Crouch Walk/Idle
+ * ↓ (isCrouching = false)
+ * Return to previous state
+ * 
+ * UPPER BODY LAYER (Aiming Overlay):
+ * 
+ * Default: Empty/Idle
+ * ↓ (isAiming = true)
+ * Aim Pose (blends with body movement)
+ * ↓ (isAiming = false)
+ * Default
+ * 
+ * Set this layer's WEIGHT to 0.6-0.8 for smooth blending
+ */
+
+/*
+ * ============================================================
+ * STEP 5: CREATE BLEND TREES
+ * ============================================================
+ * 
+ * For smooth 8-directional walking, use Blend Trees:
+ * 
+ * WALK BLEND TREE:
+ * Type: 2D Freeform Directional
+ * Parameters: moveX (X-axis), moveY (Y-axis)
+ * 
+ * Add animations at these positions:
+ * ├─ Walk Back      (x=0,   y=-1)  [Walk Backward anim]
+ * ├─ Walk Bk-Left   (x=-1,  y=-1)  [Strafe+Back]
+ * ├─ Walk Left      (x=-1,  y=0)   [Strafe Left]
+ * ├─ Walk Fwd-Left  (x=-1,  y=1)   [Strafe+Forward]
+ * ├─ Walk Forward   (x=0,   y=1)   [Walk Forward]
+ * ├─ Walk Fwd-Right (x=1,   y=1)   [Strafe+Forward]
+ * ├─ Walk Right     (x=1,   y=0)   [Strafe Right]
+ * ├─ Walk Bk-Right  (x=1,   y=-1)  [Strafe+Back]
+ * └─ Idle           (x=0,   y=0)   [Idle]
+ * 
+ * RUN BLEND TREE:
+ * Similar to walk, but with run animations
+ * Usually just Forward/Backward since strafing reduces speed
+ * 
+ * CROUCH WALK BLEND TREE:
+ * Same structure as walk, but with crouch animations
+ */
+
+/*
+ * ============================================================
+ * STEP 6: SETUP TRANSITIONS
+ * ============================================================
+ * 
+ * TRANSITION: Idle → Walk
+ * ├─ Condition: isMoving = true
+ * ├─ isRunning = false
+ * ├─ isCrouching = false
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.15s
+ * 
+ * TRANSITION: Walk → Run
+ * ├─ Condition: isRunning = true
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.2s
+ * 
+ * TRANSITION: Run → Walk
+ * ├─ Condition: isRunning = false
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.2s
+ * 
+ * TRANSITION: Walk → Idle
+ * ├─ Condition: isMoving = false
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.15s
+ * 
+ * TRANSITION: Any → Crouch
+ * ├─ Condition: isCrouching = true
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.2s
+ * 
+ * TRANSITION: Crouch → Walk/Idle
+ * ├─ Condition: isCrouching = false
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.2s
+ * 
+ * TRANSITION: Any → Frozen
+ * ├─ Condition: isFrozen = true
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0s (immediate)
+ * 
+ * For jumping:
+ * TRANSITION: Walk/Run/Idle → Jump
+ * ├─ Condition: isJumping = true (when verticalVelocity > 0)
+ * ├─ Has Exit Time: OFF
+ * └─ Duration: 0.1s
+ * 
+ * TRANSITION: Jump → Walk/Idle
+ * ├─ Condition: controller.isGrounded = true
+ * └─ Duration: 0.1s
+ */
+
+/*
+ * ============================================================
+ * STEP 7: UPPER BODY LAYER (AIMING)
+ * ============================================================
+ * 
+ * Create a second layer called "Aim":
+ * 
+ * 1. Right-click "Base Layer" → "Add Layer"
+ * 2. Name it "Aim"
+ * 3. Set Weight to 0.7 (blends 70% aim, 30% walk)
+ * 4. Create "Aim Idle" and "Aim Walk" states
+ * 5. Transitions:
+ * 
+ *    Default (empty) → Aim Idle
+ *    ├─ Condition: isAiming = true
+ *    └─ Duration: 0.15s
+ *    
+ *    Aim Idle → Aim Walk
+ *    ├─ Condition: isMoving = true
+ *    └─ Duration: 0.1s
+ *    
+ *    Aim Walk → Aim Idle
+ *    ├─ Condition: isMoving = false
+ *    └─ Duration: 0.1s
+ *    
+ *    Aim * → Default
+ *    ├─ Condition: isAiming = false
+ *    └─ Duration: 0.15s
+ * 
+ * Layer Weight Blending:
+ * If you want dynamic blending:
+ * └─ animator.SetLayerWeight(1, isAiming ? 1f : 0f);
+ */
+
+/*
+ * ============================================================
+ * STEP 8: ATTACH GUN TO HAND BONE
+ * ============================================================
+ * 
+ * 1. Import your gun model (FBX)
+ * 2. Drag gun model into hierarchy as child of Right Hand bone
+ * 3. Position locally:
+ *    └─ Position: (0.1, -0.1, 0.2) [adjust to feel right]
+ *    └─ Rotation: (0, 0, 0) [or match hand orientation]
+ *    └─ Scale: (1, 1, 1)
+ * 
+ * 4. Add BoxCollider for weapon effects (optional)
+ * 5. The gun will now follow hand bone during all animations!
+ * 
+ * TEST: Play animation, gun should stay in hand
+ */
+
+/*
+ * ============================================================
+ * STEP 9: POSITION FIRST-PERSON CAMERA
+ * ============================================================
+ * 
+ * Your FirstPersonCamera should be positioned at head level:
+ * 
+ * Option A: Child of Head Bone
+ * ├─ Camera (child of Head bone)
+ * └─ Local Position: (0, 0, 0.1) [slightly in front of face]
+ * 
+ * Option B: Child of player, manually positioned
+ * ├─ Camera (child of Player)
+ * └─ Position: head height (e.g., y = 1.7 for 6ft player)
+ * 
+ * The camera position is handled by FirstPersonCamera.cs already!
+ * 
+ * Result:
+ * - You see first-person view from camera position
+ * - Other players see your full body with gun in hand
+ * - Gun never blocks your view (positioned at edge of screen)
+ */
+
+/*
+ * ============================================================
+ * STEP 10: CODE INTEGRATION (ALREADY DONE!)
+ * ============================================================
+ * 
+ * Your PlayerMovement.cs already sends these parameters:
+ * 
+ * Every frame:
+ * animator.SetFloat("moveX", moveInput.x);
+ * animator.SetFloat("moveY", moveInput.y);
+ * animator.SetFloat("moveSpeed", moveInput.magnitude);
+ * animator.SetBool("isMoving", moveInput.sqrMagnitude > 0.01f);
+ * animator.SetBool("isRunning", runInput && moveInput.sqrMagnitude > 0.01f);
+ * animator.SetBool("isCrouching", crouchInput);
+ * animator.SetFloat("verticalVelocity", verticalVelocity);
+ * 
+ * From states:
+ * animator.SetBool("isAiming", true); [AimState]
+ * animator.SetBool("isCharging", true); [ChargeState]
+ * animator.SetBool("isFrozen", true); [FrozenState]
+ * animator.speed = 0; [PausedState]
+ * 
+ * NO CODE CHANGES NEEDED! Just set up Animator.
+ */
+
+/*
+ * ============================================================
+ * ANIMATOR SETTINGS
+ * ============================================================
+ * 
+ * Animator Component (on your Player):
+ * ├─ Controller: [Your Animator Controller]
+ * ├─ Avatar: [Humanoid Avatar from your FBX]
+ * ├─ Apply Root Motion: FALSE ⭐ IMPORTANT!
+ *    (We use CharacterController instead)
+ * ├─ Animate Physics: FALSE
+ * ├─ Update Mode: Normal
+ * └─ Culling Mode: Always Animate
+ *    (So animations play even when off-screen - for other players)
+ */
+
+/*
+ * ============================================================
+ * NETWORKING CONSIDERATIONS (MULTIPLAYER)
+ * ============================================================
+ * 
+ * To sync animations across network:
+ * 
+ * 1. Send these parameters over network:
+ *    ├─ moveX
+ *    ├─ moveY
+ *    ├─ isRunning
+ *    ├─ isCrouching
+ *    ├─ isAiming
+ *    └─ isCharging
+ * 
+ * 2. On remote players:
+ *    └─ Set these same parameters
+ *    └─ Animator will play matching animations
+ * 
+ * 3. Example (Photon/Netcode):
+ *    [PunRPC]
+ *    void AnimateRemotePlayer(float x, float y, bool running, bool crouching)
+ *    {
+ *        animator.SetFloat("moveX", x);
+ *        animator.SetFloat("moveY", y);
+ *        animator.SetBool("isRunning", running);
+ *        animator.SetBool("isCrouching", crouching);
+ *    }
+ */
+
+/*
+ * ============================================================
+ * TROUBLESHOOTING
+ * ============================================================
+ * 
+ * Problem: Gun doesn't follow hand
+ * Solution: Check gun is child of Right Hand bone (not separate)
+ * 
+ * Problem: Animations don't play
+ * Solution: Check animator has correct avatar and controller
+ * 
+ * Problem: Character T-poses during transition
+ * Solution: Reduce transition duration, check Exit Time is OFF
+ * 
+ * Problem: Animation clips are grey/disabled
+ * Solution: Check import settings - must have Humanoid avatar
+ * 
+ * Problem: Aiming animation doesn't blend smoothly
+ * Solution: Increase layer weight, adjust transition duration
+ * 
+ * Problem: Walk animations look jittery
+ * Solution: Use blend trees for smooth directional blending
+ * 
+ * Problem: Other players don't see animations
+ * Solution: Sync animator parameters over network
+ */
+
+/*
+ * ============================================================
+ * COMPLETE TESTING CHECKLIST
+ * ============================================================
+ * 
+ * □ Stand still → Idle animation plays
+ * □ Walk forward → Walk forward animation plays
+ * □ Walk backward → Walk backward animation plays  
+ * □ Walk left/right → Strafe animation plays
+ * □ Walk + Shift → Run animation plays
+ * □ Hold C → Crouch animation plays
+ * □ Crouch + WASD → Crouch walk animation plays
+ * □ Right Click → Aiming animation blends in
+ * □ Release Right Click → Back to normal stance
+ * □ Jump → Jump animation plays, land smoothly
+ * □ Hold E → Charge animation plays
+ * □ ESC (pause) → All animations freeze
+ * □ ESC again → Animations resume
+ * □ 3 seconds at start → Unfrozen, can move
+ * □ Gun stays in hand → Never floats away
+ * □ Gun visible to others → Other players see it in hand
+ */
