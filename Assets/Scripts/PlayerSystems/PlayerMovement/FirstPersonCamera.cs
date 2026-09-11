@@ -22,7 +22,6 @@ public class FirstPersonCamera : MonoBehaviour
     [Tooltip("Distance below the top of the CharacterController capsule.")]
     [SerializeField] private float eyeOffsetFromTop = 0.12f;
     [SerializeField] private float cameraHeightSmoothTime = 0.06f;
-    [SerializeField] private bool hidePlayerRenderers = true;
 
     private CharacterController controller;
     private InputAction mouseLookAction;
@@ -50,11 +49,9 @@ public class FirstPersonCamera : MonoBehaviour
         Vector3 currentAngles = playerCamera.transform.eulerAngles;
         pitch = NormalizeAngle(currentAngles.x);
 
-        if (hidePlayerRenderers)
-        {
-            foreach (Renderer playerRenderer in GetComponentsInChildren<Renderer>())
-                playerRenderer.enabled = false;
-        }
+        // Keep the animated character visible in both Game and Scene views.
+        foreach (SkinnedMeshRenderer bodyRenderer in GetComponentsInChildren<SkinnedMeshRenderer>())
+            bodyRenderer.enabled = true;
     }
 
     private void OnEnable()

@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("General")]
     [SerializeField] private bool enableAirControl = true;
+    [SerializeField] private Animator animator;
 
     private CharacterController controller;
     private Vector2 moveInput;
@@ -43,14 +44,14 @@ public class PlayerMovement : MonoBehaviour
     private bool isCharging;
     private PlayerStateManager stateManager;
     private IPlayerAttributes playerAttributes;
-    private Animator animator;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
         stateManager = GetComponent<PlayerStateManager>();
         playerAttributes = GetComponent<IPlayerAttributes>();
-        animator = GetComponent<Animator>();
+        if (animator == null)
+            animator = GetComponent<Animator>();
 
         // Auto-create PlayerAttributesService if it doesn't exist
         if (playerAttributes == null)
@@ -141,7 +142,7 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        if (chargeInput && !isCharging)
+        if (chargeInput && !isCharging && moveMagnitude <= 0.01f && movementEnabled)
         {
             // begin recharge
             StartRecharge();
@@ -168,7 +169,7 @@ public class PlayerMovement : MonoBehaviour
             Vector3 desired = (right * moveInput.x + forward * moveInput.y).normalized;
 
             float speed = playerAttributes.WalkSpeed;
-            if (runInput && runningEnabled) speed = playerAttributes.RunSpeed;
+            if (runInput && runningEnabled && !crouchInput) speed = playerAttributes.RunSpeed;
             if (crouchInput) speed *= playerAttributes.CrouchSpeedMultiplier;
 
             // allow reduced control in air if desired
@@ -205,18 +206,20 @@ public class PlayerMovement : MonoBehaviour
         if (animator != null)
         {
             // Basic movement states
-            animator.SetBool("isMoving", moveInput.sqrMagnitude > 0.01f);
-            animator.SetBool("isRunning", runInput && moveInput.sqrMagnitude > 0.01f);
+            Vector2 animationInput = movementEnabled && !isCharging ? moveInput : Vector2.zero;
+            animator.SetBool("isMoving", animationInput.sqrMagnitude > 0.01f);
+            animator.SetBool("isRunning", runInput && runningEnabled && !crouchInput && animationInput.sqrMagnitude > 0.01f);
             animator.SetBool("isCrouching", crouchInput);
+            animator.SetBool("isJumping", !controller.isGrounded);
             animator.SetFloat("verticalVelocity", verticalVelocity);
             
             // FPS directional movement (for arm blending)
             // moveY: forward/backward (-1 = back, 0 = idle, 1 = forward)
             // moveX: left/right strafe (-1 = left, 0 = center, 1 = right)
             // moveSpeed: 0-1 normalized magnitude for animation blending
-            animator.SetFloat("moveX", moveInput.x);
-            animator.SetFloat("moveY", moveInput.y);
-            animator.SetFloat("moveSpeed", moveInput.magnitude);
+            animator.SetFloat("moveX", animationInput.x, 0.1f, Time.deltaTime);
+            animator.SetFloat("moveY", animationInput.y, 0.1f, Time.deltaTime);
+            animator.SetFloat("moveSpeed", animationInput.magnitude);
         }
 
         // crouch height transition

@@ -68,7 +68,11 @@ public class PlayerStateManager : MonoBehaviour
         pauseAction = new InputAction("Pause", InputActionType.Button);
         pauseAction.AddBinding("<Keyboard>/escape");
 
-        // Start in Frozen state
+    }
+
+    private void Start()
+    {
+        // Wait until the movement and camera components have finished Awake.
         ChangeState(frozenState);
     }
 
@@ -106,7 +110,7 @@ public class PlayerStateManager : MonoBehaviour
     /// </summary>
     private void HandleStateTransitions()
     {
-        bool aimPressed = aimAction.triggered;
+        bool aimHeld = aimAction.IsPressed();
         bool pausePressed = pauseAction.triggered;
 
         // Always allow pause toggle
@@ -134,14 +138,14 @@ public class PlayerStateManager : MonoBehaviour
         // Normal → Aim, Charge, or stay
         if (currentState == normalState)
         {
-            if (aimPressed)
+            if (aimHeld)
                 ChangeState(aimState);
         }
 
         // Aim → Normal or back to Aim
         if (currentState == aimState)
         {
-            if (aimPressed)
+            if (!aimHeld)
                 ChangeState(normalState);
         }
 
