@@ -16,7 +16,7 @@ public class LobbyManager : MonoBehaviour {
     
     private const byte MAX_Players = 6;
 
-    private string playerName;
+    private string playerName = "Guest";
     private bool lockReadyStatus = false;
 
     private Lobby currentLobby;
@@ -29,7 +29,9 @@ public class LobbyManager : MonoBehaviour {
             return;
         }
 
-        playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
+        if (AuthenticationService.Instance.IsSignedIn) {
+            playerName = AuthenticationService.Instance.PlayerName.Split('#')[0];
+        }
 
         OnLobbyPulled += LobbyManager_OnLobbyPulled;
     }

@@ -20,14 +20,13 @@ public class FirstPersonCamera : MonoBehaviour
 
     [Header("Camera Position")]
     [Tooltip("Distance below the top of the CharacterController capsule.")]
-    [SerializeField] private float eyeOffsetFromTop = 0.12f;
-    [SerializeField] private float cameraHeightSmoothTime = 0.06f;
+    [SerializeField] private Transform playerHead;
+    [SerializeField] private Vector3 eyeOffsetFromTop;
 
     private CharacterController controller;
     private InputAction mouseLookAction;
     private InputAction gamepadLookAction;
     private float pitch;
-    private float heightVelocity;
 
     private void Awake()
     {
@@ -101,16 +100,9 @@ public class FirstPersonCamera : MonoBehaviour
         if (playerCamera == null)
             return;
 
-        float targetHeight = controller.center.y + controller.height * 0.5f - eyeOffsetFromTop;
-        float smoothHeight = Mathf.SmoothDamp(
-            playerCamera.transform.position.y,
-            transform.TransformPoint(new Vector3(0f, targetHeight, 0f)).y,
-            ref heightVelocity,
-            cameraHeightSmoothTime);
+        Vector3 targetPosition = playerHead.position + eyeOffsetFromTop;
 
-        Vector3 cameraPosition = transform.TransformPoint(new Vector3(0f, targetHeight, 0f));
-        cameraPosition.y = smoothHeight;
-        playerCamera.transform.position = cameraPosition;
+        playerCamera.transform.position = targetPosition;
     }
 
     private static float NormalizeAngle(float angle)
